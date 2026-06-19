@@ -18,107 +18,15 @@ import os
 import re
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import okf_common as oc  # noqa: E402
+
 ALLOWED_TYPES = {"concept", "decision", "reference", "glossary"}
 ALLOWED_STATUS = {"draft", "review", "stable", "deprecated"}
 REQUIRED_FIELDS = ("id", "title", "type", "created", "updated")
-WIKILINK_RE = re.compile(r"\[\[([a-z0-9][a-z0-9-]*)\]\]")
 # Matches the first cell of a generated index row, tolerating the markdown-link
 # form `| [`id`](concepts/id.md) |`, a bare `| `id` |`, or a plain `| id |`.
 INDEX_ROW_RE = re.compile(r"^\|\s*\[?`?([a-z0-9][a-z0-9-]*)`?", re.MULTILINE)
-
-
-# --------------------------------------------------------------------------- #
-# Frontmatter parsing
-# --------------------------------------------------------------------------- #
-def _coerce(val: str):
-    val = val.strip()
-    if len(val) >= 2 and val[0] in "\"'" and val[-1] == val[0]:
-        return val[1:-1]
-    if val.startswith("[") and val.endswith("]"):
-        inner = val[1:-1].strip()
-        return [_coerce(x) for x in inner.split(",")] if inner else []
-    return val
-
-
-def _fallback_parse(block: str) -> dict:
-    """Parse the OKF frontmatter subset without PyYAML.
-
-    Handles scalars, inline ``[a, b]`` lists, block ``- item`` lists, and block
-    lists of ``- key: val`` mappings (as used by ``sources``).
-    """
-    data: dict = {}
-    lines = block.split("\n")
-    i, n = 0, len(lines)
-    while i < n:
-        line = lines[i]
-        if not line.strip() or line.lstrip().startswith("#"):
-            i += 1
-            continue
-        if not line[0].isspace() and ":" in line:
-            key, _, rest = line.partition(":")
-            key, rest = key.strip(), rest.strip()
-            if rest:
-                data[key] = _coerce(rest)
-                i += 1
-                continue
-            items: list = []
-            i += 1
-            while i < n and (not lines[i].strip() or lines[i][0].isspace()):
-                cur = lines[i]
-                if not cur.strip():
-                    i += 1
-                    continue
-                stripped = cur.strip()
-                if stripped.startswith("- "):
-                    item = stripped[2:].strip()
-                    if ":" in item and not item.startswith("["):
-                        k2, _, v2 = item.partition(":")
-                        items.append({k2.strip(): _coerce(v2)})
-                    else:
-                        items.append(_coerce(item))
-                    i += 1
-                    while (
-                        i < n
-                        and lines[i].strip()
-                        and lines[i][0].isspace()
-                        and not lines[i].strip().startswith("- ")
-                    ):
-                        ck, _, cv = lines[i].strip().partition(":")
-                        if items and isinstance(items[-1], dict):
-                            items[-1][ck.strip()] = _coerce(cv)
-                        i += 1
-                else:
-                    i += 1
-            data[key] = items
-        else:
-            i += 1
-    return data
-
-
-def parse_frontmatter(text: str) -> dict | None:
-    """Return the YAML frontmatter as a dict, or None if no frontmatter block."""
-    if not text.startswith("---"):
-        return None
-    end = text.find("\n---", 3)
-    if end == -1:
-        return None
-    block = text[3:end].strip("\n")
-    try:
-        import yaml  # type: ignore
-
-        data = yaml.safe_load(block)
-        return data if isinstance(data, dict) else {}
-    except Exception:
-        return _fallback_parse(block)
-
-
-def body_of(text: str) -> str:
-    if text.startswith("---"):
-        end = text.find("\n---", 3)
-        if end != -1:
-            nl = text.find("\n", end + 1)
-            return text[nl + 1 :] if nl != -1 else ""
-    return text
 
 
 # --------------------------------------------------------------------------- #
@@ -132,12 +40,6 @@ def _is_iso_date(value) -> bool:
         return True
     except ValueError:
         return False
-
-
-def _as_list(value):
-    if value is None:
-        return []
-    return value if isinstance(value, list) else [value]
 
 
 def validate_bundle(bundle: str):
@@ -182,7 +84,7 @@ def validate_bundle(bundle: str):
             err(scope, f"cannot read file: {exc}")
             continue
 
-        fm = parse_frontmatter(text)
+        fm = oc.parse_frontmatter(text)
         if fm is None:
             err(scope, "missing YAML frontmatter block (--- ... ---)")
             continue
@@ -200,7 +102,7 @@ def validate_bundle(bundle: str):
                 err(scope, f"duplicate id '{cid}' (also in {ids[cid]})")
             else:
                 ids[cid] = scope
-            parsed[cid] = {"fm": fm, "body": body_of(text), "scope": scope}
+            parsed[cid] = {"fm": fm, "body": oc.body_of(text), "scope": scope}
 
         ctype = fm.get("type")
         if ctype and ctype not in ALLOWED_TYPES:
@@ -219,7 +121,7 @@ def validate_bundle(bundle: str):
             if str(updated).strip() < str(created).strip():
                 err(scope, f"updated ({updated}) is before created ({created})")
 
-        for src in _as_list(fm.get("sources")):
+        for src in oc._as_list(fm.get("sources")):
             if isinstance(src, dict):
                 if not src.get("title"):
                     warn(scope, "a source is missing a 'title'")
@@ -230,16 +132,17 @@ def validate_bundle(bundle: str):
                 if not src.strip():
                     warn(scope, "empty source entry")
 
-    # Cross-link integrity (needs the full id set first).
+    # Cross-link integrity. Body [[id]] is the source of truth (ERROR on
+    # dangling). Frontmatter links: is generated — flag it only as stale (WARN).
     for cid, info in parsed.items():
         fm, body, scope = info["fm"], info["body"], info["scope"]
-        for target in _as_list(fm.get("links")):
-            tid = target.get("id") if isinstance(target, dict) else target
-            if tid and tid not in ids:
-                err(scope, f"frontmatter link target '{tid}' does not exist")
-        for tid in WIKILINK_RE.findall(body):
+        body_links = oc.extract_wikilinks(body)
+        for tid in body_links:
             if tid not in ids:
-                warn(scope, f"wiki-link [[{tid}]] does not resolve to a concept")
+                err(scope, f"wiki-link [[{tid}]] does not resolve to a concept")
+        fm_links = [str(x) for x in oc._as_list(fm.get("links"))]
+        if fm_links != body_links:
+            warn(scope, "links: is out of date with the body (run /okf:reindex)")
 
     # index.md freshness (advisory only — /okf:reindex is the source of truth).
     if os.path.isfile(index_path) and ids:
