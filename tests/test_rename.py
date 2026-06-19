@@ -7,6 +7,7 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(_HERE, "..", "scripts"))
 sys.path.insert(0, _HERE)  # tests/ — so `import okf_test_util` resolves
 import rename  # noqa: E402
+import okf_common as oc  # noqa: E402
 from okf_test_util import make_bundle, concept  # noqa: E402
 
 
@@ -58,8 +59,8 @@ class TestRename(unittest.TestCase):
         self.assertNotEqual(rename.rename(b, "old", "Bad ID"), 0)
 
     def test_recovery_after_crash_before_final_rename(self):
-        # Simulate crash: run steps 2-4 (rewrite bodies, set id, reindex) but
-        # NOT the final os.rename, then re-invoke rename and assert clean state.
+        # Simulate crash: run step 2 (rewrite_bodies) but NOT the final
+        # os.rename, then re-invoke rename and assert clean state.
         b = make_bundle({
             "old": concept("old", "self [[old]]"),
             "ref": concept("ref", "[[old]]"),
@@ -68,6 +69,33 @@ class TestRename(unittest.TestCase):
         # old file still present, bodies now say [[new]] -> partial state
         self.assertTrue(exists(b, "old"))
         rc = rename.rename(b, "old", "new")  # re-run completes
+        self.assertEqual(rc, 0)
+        self.assertTrue(exists(b, "new"))
+        self.assertFalse(exists(b, "old"))
+        self.assertIn("[[new]]", read(b, "ref"))
+        self.assertNotIn("[[old]]", read(b, "ref"))
+
+    def test_recovery_after_id_set_before_rename(self):
+        # Simulate crash after steps 2+3 (bodies rewritten, id set to new) but
+        # BEFORE the final os.rename — so <old>.md still exists with id: new.
+        # Re-invoking rename must complete cleanly from this partial state.
+        b = make_bundle({
+            "old": concept("old", "self [[old]]"),
+            "ref": concept("ref", "[[old]]"),
+        })
+        # Step 2: rewrite bodies ([[old]] -> [[new]] everywhere)
+        rename.rewrite_bodies(b, "old", "new")
+        # Step 3: set id: new inside the still-old-named file
+        old_path = os.path.join(b, "concepts", "old.md")
+        with open(old_path, encoding="utf-8") as fh:
+            text = fh.read()
+        with open(old_path, "w", encoding="utf-8") as fh:
+            fh.write(oc.set_id(text, "new"))
+        # Crash before os.rename: old file still present, already carries id: new
+        self.assertTrue(exists(b, "old"))
+        self.assertIn("id: new", read(b, "old"))
+        # Re-run rename — must tolerate the id-already-new resume state
+        rc = rename.rename(b, "old", "new")
         self.assertEqual(rc, 0)
         self.assertTrue(exists(b, "new"))
         self.assertFalse(exists(b, "old"))
