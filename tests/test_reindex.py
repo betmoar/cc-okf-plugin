@@ -35,10 +35,12 @@ class TestReindex(unittest.TestCase):
     def test_dry_run_writes_nothing(self):
         b = make_bundle({"a": concept("a", "[[b]]"), "b": concept("b", "x")})
         before = read(b, "a")
-        index_before = open(os.path.join(b, "index.md"), encoding="utf-8").read()
+        with open(os.path.join(b, "index.md"), encoding="utf-8") as fh:
+            index_before = fh.read()
         reindex.run(b, dry_run=True)
         self.assertEqual(before, read(b, "a"))
-        index_after = open(os.path.join(b, "index.md"), encoding="utf-8").read()
+        with open(os.path.join(b, "index.md"), encoding="utf-8") as fh:
+            index_after = fh.read()
         self.assertEqual(index_before, index_after)
 
     def test_migration_notice_for_dropped_links(self):
