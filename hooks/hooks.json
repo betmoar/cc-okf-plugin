@@ -1,0 +1,17 @@
+{
+  "description": "OKF per-project activation gate. On session start, emits a short OKF pointer as additionalContext only when the project has been activated (an .okf/active sentinel exists); otherwise emits nothing, keeping the okf skill dormant elsewhere.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/okf-gate.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

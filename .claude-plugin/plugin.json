@@ -1,0 +1,12 @@
+{
+  "name": "okf",
+  "displayName": "Open Knowledge Format",
+  "description": "Read, write, validate, and maintain Open Knowledge Format (OKF) knowledge bundles — directories of markdown concept files with YAML frontmatter, an index.md, a log.md, cross-links, and citations.",
+  "version": "0.1.0",
+  "author": {
+    "name": "betmoar"
+  },
+  "repository": "https://github.com/betmoar/cc-okf-plugin",
+  "license": "MIT",
+  "keywords": ["okf", "knowledge", "documentation", "notes", "knowledge-base"]
+}

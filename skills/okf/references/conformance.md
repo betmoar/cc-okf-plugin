@@ -1,0 +1,68 @@
+# OKF Conformance Rules
+
+These are the rules enforced by `/okf:validate` (`scripts/validate.py`). Each
+rule has a severity:
+
+- **ERROR** — a violation; the bundle is non-conformant and `validate.py` exits
+  non-zero.
+- **WARN** — advisory; does not fail validation but SHOULD be addressed.
+
+`validate.py` ignores unknown frontmatter fields (forward compatibility) and
+treats files under `.okf/` and the `index.md`/`log.md` files as non-concepts.
+
+## Bundle-level
+
+| # | Severity | Rule |
+| - | -------- | ---- |
+| B1 | ERROR | `index.md` exists at the bundle root. |
+| B2 | ERROR | `log.md` exists at the bundle root. |
+| B3 | WARN  | A `concepts/` directory exists. (Absent ⇒ the bundle has no concepts yet.) |
+| B4 | WARN  | `concepts/` is non-empty. |
+
+## Concept-level
+
+| # | Severity | Rule |
+| - | -------- | ---- |
+| C1 | ERROR | The file has a YAML frontmatter block. |
+| C2 | ERROR | Required fields present and non-empty: `id`, `title`, `type`, `created`, `updated`. |
+| C3 | ERROR | `id` equals the filename stem (`concepts/<id>.md`). |
+| C4 | ERROR | `id` is unique within the bundle. |
+| C5 | ERROR | `type` ∈ {`concept`, `decision`, `reference`, `glossary`}. |
+| C6 | ERROR | `status`, if present, ∈ {`draft`, `review`, `stable`, `deprecated`}. |
+| C7 | ERROR | `created` and `updated` are valid ISO dates (`YYYY-MM-DD`). |
+| C8 | ERROR | `updated` is not earlier than `created`. |
+| C9 | WARN  | Each `sources` entry has a `title`; any `url` starts with `http(s)://`. |
+
+## Cross-bundle integrity
+
+| # | Severity | Rule |
+| - | -------- | ---- |
+| X1 | ERROR | Every `links` target resolves to an existing concept id. |
+| X2 | WARN  | Every `[[wiki-link]]` in a body resolves to an existing concept id. |
+
+`[[wiki-links]]` are a WARN (not ERROR) because prose may intentionally reference
+ideas that are not yet captured as concepts; `links` frontmatter is the
+load-bearing graph and is therefore stricter.
+
+## Index freshness (advisory)
+
+| # | Severity | Rule |
+| - | -------- | ---- |
+| I1 | WARN | `index.md` lists every existing concept (none missing). |
+| I2 | WARN | `index.md` lists no ids that no longer exist (none stale). |
+
+`/okf:reindex` is the source of truth for `index.md`. After adding, renaming, or
+removing concepts, run `/okf:reindex`, then re-run `/okf:validate` — I1/I2 should
+clear.
+
+## Interpreting results
+
+`validate.py` prints warnings first, then errors, then a summary line:
+
+```
+Result: <n> error(s), <m> warning(s)
+```
+
+Exit code `0` = conformant (errors == 0); `1` = non-conformant; `2` = usage
+error (e.g. the bundle path is not a directory). Fix ERRORs first; they are the
+ones that break the format's guarantees.
