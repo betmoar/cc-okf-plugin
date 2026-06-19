@@ -1,7 +1,7 @@
 ---
 description: Validate an OKF bundle against conformance rules.
 argument-hint: [bundle-path]
-allowed-tools: Bash(python3:*), Bash(python:*), Read
+allowed-tools: Bash(python3:*), Read
 ---
 
 Run OKF conformance validation on the bundle at `$ARGUMENTS` (default: the

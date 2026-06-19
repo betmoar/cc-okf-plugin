@@ -40,9 +40,10 @@ occur just before predicted recall failure.
 Each successful retrieval strengthens the memory trace and flattens the curve.
 ```
 
-Note how the body's `[[forgetting-curve]]` wiki-link is mirrored by the
-`links: [forgetting-curve]` frontmatter entry — the body link is for humans, the
-frontmatter entry is the machine-readable graph that `/okf:validate` checks.
+The `links: [forgetting-curve]` frontmatter entry is **generated** by
+`/okf:reindex` from the body's `[[forgetting-curve]]` wiki-link — do not
+hand-edit it. Body `[[id]]` references are the source of truth; `/okf:validate`
+checks them directly (a dangling body `[[id]]` is an ERROR).
 
 ## Concept: `concepts/forgetting-curve.md`
 
@@ -62,9 +63,10 @@ without reinforcement. Spaced review (see [[spaced-repetition]]) slows the decay
 ```
 
 This concept does not declare `links` in frontmatter even though its body
-references `[[spaced-repetition]]`. That is allowed: the unmatched wiki-link is a
-WARN, not an ERROR. To make the relationship load-bearing in the graph, add
-`links: [spaced-repetition]`.
+references `[[spaced-repetition]]`. After running `/okf:reindex`, the generated
+`links: [spaced-repetition]` entry will be spliced in automatically. Until then,
+`/okf:validate` reports a WARN (stale `links:`) but not an ERROR — the body
+wiki-link itself resolves, so referential integrity is intact.
 
 ## Generated `index.md` (after `/okf:reindex`)
 
@@ -121,7 +123,7 @@ updated: 2026-06-05   # ERROR C8: updated is before created
 links: [does-not-exist]   # ERROR X1: no such concept
 ---
 
-Body cites [[also-missing]].   # WARN X2: unresolved wiki-link
+Body cites [[also-missing]].   # ERROR X1: body wiki-link does not resolve
 ```
 
 Fixes: rename the file to match `id` (or fix `id`), set `type` to an allowed

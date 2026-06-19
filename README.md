@@ -27,6 +27,22 @@ actions** that run the shared **scripts**. A skill cannot invoke a slash command
 so knowledge and lifecycle actions are kept separate but share `scripts/` via
 `${CLAUDE_PLUGIN_ROOT}`.
 
+## When to reach for OKF
+
+OKF sits between two things you may already use:
+
+- **vs. a personal vault (Obsidian/Foam/Dendron):** OKF lives *in the project's
+  own git repo* and is maintained through explicit commands (`/okf:reindex`,
+  `/okf:rename`, …) that Claude runs as it works — it's team-visible project
+  knowledge, not a personal note store. (The plugin stays dormant until you
+  `/okf:activate` a project.)
+- **vs. Claude Code's built-in memory:** memory is cross-session assistant
+  memory scoped to you; an OKF bundle is durable, reviewable knowledge committed
+  alongside the code it describes, shared by everyone who clones the repo.
+
+Reach for OKF when the knowledge belongs to the *project* and should live in its
+history. Use a vault or memory when it belongs to *you*.
+
 ## Install
 
 This repo is the plugin itself. It's distributed through a separate marketplace
@@ -79,7 +95,7 @@ session or `/clear` (a known SessionStart timing quirk on some versions).
 ## Permissions
 
 Each command declares a tightly scoped `allowed-tools` (e.g. `validate` only
-needs `Bash(python3:*)`, `Bash(python:*)`, `Read`). On first run, choose
+needs `Bash(python3:*)`, `Read`). On first run, choose
 "Yes, and don't ask again" to persist the grant into `.claude/settings.local.json`
 for that project. Prefer letting Claude Code write these permissions rather than
 hand-editing the file.

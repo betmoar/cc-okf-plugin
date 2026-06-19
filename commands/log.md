@@ -1,7 +1,7 @@
 ---
 description: Append a timestamped entry to the OKF log.md.
 argument-hint: [message]
-allowed-tools: Bash(python3:*), Bash(python:*), Read
+allowed-tools: Bash(python3:*), Read
 ---
 
 Append a structured, timestamped entry to the OKF bundle's append-only `log.md`.

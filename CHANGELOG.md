@@ -4,6 +4,17 @@ All notable changes to the OKF plugin are documented here. The format is based o
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## 0.2.0
+
+- Link graph deduplicated: body `[[id]]` is now the single source of truth;
+  `/okf:reindex` generates the `links:` frontmatter field from it.
+- `/okf:reindex --dry-run`: preview concept-file changes without writing.
+  First-run migration notice when hand-authored `links:` are dropped.
+- New `/okf:rename <old> <new>`: link-aware, recoverable concept rename.
+- New `/okf:query`: filter concepts by `--tag/--type/--status/--text` (AND).
+- Validation: dangling body `[[id]]` is now an ERROR; stale `links:` is a WARN.
+- Commands declare `python3`-only in `allowed-tools` (dropped the `python` alias).
+
 ## [0.1.0] - 2026-06-19
 
 Initial release.

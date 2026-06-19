@@ -52,7 +52,7 @@ The frontmatter is delimited by a leading `---` line and a closing `---` line.
 | `updated` | yes | date        | ISO `YYYY-MM-DD`; MUST be `>= created` |
 | `status`  | no  | string      | one of `draft`, `review`, `stable`, `deprecated` (default `draft`) |
 | `tags`    | no  | list        | kebab-case tags |
-| `links`   | no  | list        | ids of OTHER concepts in this bundle (the machine-readable link graph) |
+| `links`   | no  | list        | **generated** by `/okf:reindex` from body `[[id]]` wiki-links — do not hand-edit |
 | `sources` | no  | list        | citations; each entry has a `title` and an optional `url` |
 
 `id` is the stable identity of a concept. Other concepts reference it, so it
@@ -65,9 +65,10 @@ The body is ordinary markdown. It SHOULD open with a short definition or summary
 and MAY use any headings, lists, or code blocks. Two body conventions are
 load-bearing:
 
-- **Cross-links**: write `[[other-id]]` to reference another concept. Every
-  `[[id]]` SHOULD also appear in the `links` frontmatter list so the graph is
-  available without parsing prose.
+- **Cross-links**: write `[[other-id]]` to reference another concept. Body
+  `[[id]]` wiki-links are the canonical source of truth for the link graph.
+  `/okf:reindex` reads them and writes the `links:` frontmatter field — do not
+  hand-edit `links:`. A dangling `[[id]]` (no matching concept) is an ERROR.
 - **Citations**: prefer recording sources in the `sources` frontmatter list.
   The body MAY additionally use markdown links or footnotes, but `sources` is
   the canonical, checkable citation record.
@@ -118,10 +119,21 @@ The log is the human-readable record of intent that complements git history.
 
 ## 5. Cross-link integrity
 
-The link graph is formed by the `links` frontmatter lists and the `[[wiki-links]]`
-in bodies. A bundle has referential integrity when every `links` target and every
-`[[id]]` resolves to an existing concept id in the same bundle. Dangling links
-are the most common conformance failure and are reported by `/okf:validate`.
+Body `[[id]]` wiki-links are the canonical source of the link graph. `/okf:reindex`
+generates the `links:` frontmatter field from them; `links:` MUST NOT be
+hand-authored. A bundle has referential integrity when every body `[[id]]`
+resolves to an existing concept id in the same bundle (ERROR if not). A `links:`
+field that is out of sync with the body is a WARN — run `/okf:reindex` to fix it.
+Dangling body wiki-links are the most common conformance failure and are reported
+by `/okf:validate`.
+
+### Migration notice (v0.1 → v0.2)
+
+On the first v0.2 `/okf:reindex`, hand-authored `links:` entries that have no
+backing body `[[id]]` are dropped. Additionally, any dict-form `links:` entries
+(an undocumented v0.1 shape) are not carried over. To preserve a link, add a
+`[[target-id]]` wiki-link in the concept body before reindexing. Pass `--dry-run`
+first to preview what would be dropped.
 
 ## 6. Versioning
 

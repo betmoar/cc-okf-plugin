@@ -1,7 +1,7 @@
 ---
 description: Regenerate index.md for an OKF bundle.
 argument-hint: [bundle-path]
-allowed-tools: Bash(python3:*), Bash(python:*), Read
+allowed-tools: Bash(python3:*), Read
 ---
 
 Regenerate the catalog table in `index.md` for the OKF bundle at `$ARGUMENTS`
@@ -13,10 +13,10 @@ Regenerate the catalog table in `index.md` for the OKF bundle at `$ARGUMENTS`
    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/reindex.py" "$ARGUMENTS"
    ```
 
-   If `${CLAUDE_PLUGIN_ROOT}` is not set, locate `scripts/reindex.py` inside the
-   installed `okf` plugin directory (commonly under `~/.claude/plugins/`) and run
-   that path instead. Use `python` if `python3` is unavailable. The script needs
-   only the Python 3 standard library.
+   Pass `--dry-run` to preview changes without writing (recommended on first v0.2
+   reindex). If `${CLAUDE_PLUGIN_ROOT}` is not set, locate `scripts/reindex.py`
+   inside the installed `okf` plugin directory (commonly under `~/.claude/plugins/`)
+   and run that path instead. The script needs only the Python 3 standard library.
 
 2. The script rewrites only the content between the
    `<!-- OKF:INDEX:BEGIN ... -->` and `<!-- OKF:INDEX:END -->` markers in
