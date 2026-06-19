@@ -102,7 +102,8 @@ def validate_bundle(bundle: str):
                 err(scope, f"duplicate id '{cid}' (also in {ids[cid]})")
             else:
                 ids[cid] = scope
-            parsed[cid] = {"fm": fm, "body": oc.body_of(text), "scope": scope}
+            parsed[cid] = {"fm": fm, "body": oc.body_of(text), "scope": scope,
+                           "text": text}
 
         ctype = fm.get("type")
         if ctype and ctype not in ALLOWED_TYPES:
@@ -140,8 +141,7 @@ def validate_bundle(bundle: str):
         for tid in body_links:
             if tid not in ids:
                 err(scope, f"wiki-link [[{tid}]] does not resolve to a concept")
-        fm_links = [str(x) for x in oc._as_list(fm.get("links"))]
-        if fm_links != body_links:
+        if oc.splice_links(info["text"], body_links) != info["text"]:
             warn(scope, "links: is out of date with the body (run /okf:reindex)")
 
     # index.md freshness (advisory only — /okf:reindex is the source of truth).

@@ -47,6 +47,21 @@ class TestValidate(unittest.TestCase):
         _, warnings, _ = validate.validate_bundle(b)
         self.assertTrue(any("index" in w.lower() for w in warnings))
 
+    def test_block_links_matching_body_triggers_stale_warn(self):
+        # Block-form `links:\n  - b` matches the body [[b]] when parsed as a list,
+        # but reindex would reformat it to inline `links: [b]`. Validate must now
+        # use the byte predicate (splice_links != text) and therefore WARN here.
+        block_links = "links:\n  - b"
+        b = make_bundle({
+            "a": concept("a", "see [[b]]", extra_fm=block_links),
+            "b": concept("b", "leaf"),
+        })
+        _, warnings, _ = validate.validate_bundle(b)
+        self.assertTrue(
+            any("links" in w.lower() for w in warnings),
+            f"expected stale-links WARN for block-form links:; got warnings={warnings}",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

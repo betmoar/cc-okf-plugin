@@ -14,6 +14,7 @@ All notable changes to the OKF plugin are documented here. The format is based o
 - New `/okf:query`: filter concepts by `--tag/--type/--status/--text` (AND).
 - Validation: dangling body `[[id]]` is now an ERROR; stale `links:` is a WARN.
 - Commands declare `python3`-only in `allowed-tools` (dropped the `python` alias).
+- Known limitation: a concept file's CRLF line endings are normalized to LF when reindex rewrites its `links:` field.
 
 ## [0.1.0] - 2026-06-19
 

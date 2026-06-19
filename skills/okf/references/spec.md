@@ -137,6 +137,18 @@ backing body `[[id]]` are dropped. Additionally, any dict-form `links:` entries
 `[[target-id]]` wiki-link in the concept body before reindexing. Pass `--dry-run`
 first to preview what would be dropped.
 
+### Known limitations
+
+**Code fences are not parsed.** `WIKILINK_RE` matches `[[id]]` even inside
+fenced code blocks. Under v0.2 such a token is treated as a real link (it
+populates `links:`, and a dangling one is an ERROR). Avoid `[[…]]` inside code
+samples or escape it. Proper fence-aware extraction is a v0.3 item.
+
+**CRLF line endings are normalized on rewrite.** Concept files with CRLF
+(`\r\n`) line endings are normalized to LF when `/okf:reindex` rewrites a
+file's `links:` field (text-mode I/O + `split("\n")` join). Files whose `links:`
+does not change are left byte-identical.
+
 ## 6. Versioning
 
 This is OKF v0.1. Future versions MAY add fields or types; tools SHOULD ignore

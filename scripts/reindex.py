@@ -81,6 +81,13 @@ def splice_index(existing: str, table: str) -> str:
     return f"# Index\n\n{table}\n"
 
 
+def _link_id(entry) -> str:
+    """Extract a clean string id from a links: entry (dict-form or plain string)."""
+    if isinstance(entry, dict):
+        return str(entry.get("id", entry))
+    return str(entry)
+
+
 def regenerate_links(bundle: str, dry_run: bool) -> int:
     """Splice each concept's links: from its body. Returns count of files that
     changed (or would change, under dry_run). Prints migration notices."""
@@ -94,7 +101,7 @@ def regenerate_links(bundle: str, dry_run: bool) -> int:
             text = fh.read()
         body_links = oc.extract_wikilinks(oc.body_of(text))
         old_fm = oc.parse_frontmatter(text) or {}
-        old_links = [str(x) for x in oc._as_list(old_fm.get("links"))]
+        old_links = [_link_id(x) for x in oc._as_list(old_fm.get("links"))]
         dropped = [x for x in old_links if x not in body_links]
         if dropped:
             print(f"concepts/{fname}: dropped non-body links {dropped} "

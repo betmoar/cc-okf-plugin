@@ -17,10 +17,12 @@ don't use OKF.
 | Skill `okf` | `skills/okf/` | Pure knowledge: how to read/write OKF, the spec, conformance rules, examples. Loads on demand. |
 | Command `/okf:activate` | `commands/activate.md` | Opt a project into OKF (writes `.okf/active`). |
 | Command `/okf:validate` | `commands/validate.md` | Check a bundle against conformance rules. |
-| Command `/okf:reindex` | `commands/reindex.md` | Regenerate `index.md` from concept frontmatter. |
+| Command `/okf:reindex` | `commands/reindex.md` | Regenerate `index.md` from concept frontmatter and regenerate each concept's `links:` from its body `[[id]]` wiki-links. Supports `--dry-run`. |
 | Command `/okf:log` | `commands/log.md` | Append a timestamped entry to `log.md`. |
+| Command `/okf:rename` | `commands/rename.md` | Rename a concept, rewriting its filename, `id:`, and every cross-link `[[old]]` → `[[new]]` across the bundle. |
+| Command `/okf:query` | `commands/query.md` | Find concepts by `--tag`, `--type`, `--status`, or `--text` (AND-combined). |
 | Hook | `hooks/hooks.json` | SessionStart gate — emits a short OKF pointer only when `.okf/active` exists. |
-| Scripts | `scripts/` | `okf-gate.sh`, `validate.py`, `reindex.py`, `append-log.py`. |
+| Scripts | `scripts/` | `okf-gate.sh`, `okf_common.py`, `validate.py`, `reindex.py`, `rename.py`, `query.py`, `append-log.py`. |
 
 Architecture: the **skill is knowledge** (no side effects); the **commands are
 actions** that run the shared **scripts**. A skill cannot invoke a slash command,
