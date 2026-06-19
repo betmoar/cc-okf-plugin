@@ -120,7 +120,7 @@ title: Gamma
 type: bogus           # ERROR C5: not an allowed type
 created: 2026-06-20
 updated: 2026-06-05   # ERROR C8: updated is before created
-links: [does-not-exist]   # ERROR X1: no such concept
+links: [does-not-exist]   # WARN X2: links: out of sync with body — run /okf:reindex
 ---
 
 Body cites [[also-missing]].   # ERROR X1: body wiki-link does not resolve

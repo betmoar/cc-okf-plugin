@@ -21,8 +21,7 @@ before running anything.
 
    If `${CLAUDE_PLUGIN_ROOT}` is not set, locate `scripts/append-log.py` inside
    the installed `okf` plugin directory (commonly under `~/.claude/plugins/`) and
-   run that path instead. Use `python` if `python3` is unavailable. The script
-   needs only the Python 3 standard library.
+   run that path instead. The script needs only the Python 3 standard library.
 
 3. The script appends the entry in chronological order (creating `log.md` with a
    header if it does not exist) and never rewrites existing entries. Confirm the

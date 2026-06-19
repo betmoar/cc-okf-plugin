@@ -56,8 +56,10 @@ sources:                       # optional; list of citations
 ---
 ```
 
-Keep `id` stable once created — other concepts reference it. To rename, update
-the file, the `id`, and every referencing `links`/`[[wiki-link]]`, then reindex.
+Keep `id` stable once created — other concepts reference it. To rename, use
+`/okf:rename <old-id> <new-id>` — it updates the file, the `id`, all referencing
+body `[[wiki-link]]` occurrences, and reindexes automatically. (`links:` regenerates
+on reindex; only body wiki-links need updating in a manual rename.)
 
 ## Reading a bundle
 

@@ -56,8 +56,10 @@ The frontmatter is delimited by a leading `---` line and a closing `---` line.
 | `sources` | no  | list        | citations; each entry has a `title` and an optional `url` |
 
 `id` is the stable identity of a concept. Other concepts reference it, so it
-SHOULD NOT change. Renaming requires updating the filename, the `id`, and every
-referencing `links` entry and `[[wiki-link]]`, followed by a reindex.
+SHOULD NOT change. To rename, use `/okf:rename <old-id> <new-id>` — it updates
+the filename, the `id`, all referencing body `[[wiki-link]]` occurrences, and
+reindexes automatically. (`links:` is generated; only body wiki-links require
+updating in a manual rename.)
 
 ### 2.2 Body
 
