@@ -7,7 +7,7 @@ there is completable by simply re-running the command (every step is idempotent
 and pre-flight tolerates the id-already-new resume state). The file rename
 (os.rename, a single atomic POSIX syscall) is the last hard mutation; the only
 step after it is rebuilding index.md, which is regenerable — if that is
-interrupted, `/okf:reindex` repairs it.
+interrupted, `/cc-okf:reindex` repairs it.
 
 Usage:
     python3 rename.py <old-id> <new-id> [bundle-path]
@@ -88,10 +88,10 @@ def rename(bundle: str, old_id: str, new_id: str) -> int:
     os.rename(old_path, new_path)
 
     # 6. Rebuild index.md AFTER the rename so its rows point at <new>.md. This is
-    #    regenerable: if it is interrupted, `/okf:reindex` repairs the index.
+    #    regenerable: if it is interrupted, `/cc-okf:reindex` repairs the index.
     reindex.rebuild_index(bundle, dry_run=False)
 
-    print(f"OKF rename — '{old_id}' -> '{new_id}'. Run /okf:log to record it.")
+    print(f"OKF rename — '{old_id}' -> '{new_id}'. Run /cc-okf:log to record it.")
     return 0
 
 

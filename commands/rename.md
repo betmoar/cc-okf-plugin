@@ -13,5 +13,5 @@ Run:
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/rename.py" $ARGUMENTS
 ```
 
-After it succeeds, suggest the user run `/okf:log "renamed $1 to $2"`. Note that
+After it succeeds, suggest the user run `/cc-okf:log "renamed $1 to $2"`. Note that
 `updated` is intentionally left unchanged (it is human-authored).

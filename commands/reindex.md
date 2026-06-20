@@ -24,6 +24,6 @@ Regenerate the catalog table in `index.md` for the OKF bundle at `$ARGUMENTS`
    frontmatter from `concepts/`, sorts rows by `(type, id)`, and reports how many
    concepts were indexed.
 
-3. Report the count to the user. Suggest `/okf:validate` to confirm the bundle is
-   conformant and `/okf:log` to record the change. Do not hand-edit the generated
+3. Report the count to the user. Suggest `/cc-okf:validate` to confirm the bundle is
+   conformant and `/cc-okf:log` to record the change. Do not hand-edit the generated
    table — edit concept files and reindex instead.

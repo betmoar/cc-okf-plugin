@@ -57,9 +57,9 @@ def validate_bundle(bundle: str):
     concepts_dir = os.path.join(bundle, "concepts")
 
     if not os.path.isfile(index_path):
-        err("bundle", "missing index.md at bundle root (run /okf:reindex)")
+        err("bundle", "missing index.md at bundle root (run /cc-okf:reindex)")
     if not os.path.isfile(log_path):
-        err("bundle", "missing log.md at bundle root (run /okf:log)")
+        err("bundle", "missing log.md at bundle root (run /cc-okf:log)")
 
     if not os.path.isdir(concepts_dir):
         warn("bundle", "no concepts/ directory found; bundle has no concepts yet")
@@ -142,9 +142,9 @@ def validate_bundle(bundle: str):
             if tid not in ids:
                 err(scope, f"wiki-link [[{tid}]] does not resolve to a concept")
         if oc.splice_links(info["text"], body_links) != info["text"]:
-            warn(scope, "links: is out of date with the body (run /okf:reindex)")
+            warn(scope, "links: is out of date with the body (run /cc-okf:reindex)")
 
-    # index.md freshness (advisory only — /okf:reindex is the source of truth).
+    # index.md freshness (advisory only — /cc-okf:reindex is the source of truth).
     if os.path.isfile(index_path) and ids:
         try:
             with open(index_path, "r", encoding="utf-8") as fh:
@@ -155,9 +155,9 @@ def validate_bundle(bundle: str):
         missing = set(ids) - indexed
         stale = indexed - set(ids)
         if missing:
-            warn("index.md", f"missing concepts {sorted(missing)} (run /okf:reindex)")
+            warn("index.md", f"missing concepts {sorted(missing)} (run /cc-okf:reindex)")
         if stale:
-            warn("index.md", f"lists unknown ids {sorted(stale)} (run /okf:reindex)")
+            warn("index.md", f"lists unknown ids {sorted(stale)} (run /cc-okf:reindex)")
 
     return errors, warnings, len(concept_files)
 

@@ -26,4 +26,4 @@ project root `.`).
    rule each violation breaks (see the `okf` skill's `references/conformance.md`
    for rule meanings). Distinguish ERRORs (must fix; bundle is non-conformant)
    from WARNs (advisory). When errors involve a stale `index.md`, recommend
-   `/okf:reindex`. Do not edit any files as part of validation.
+   `/cc-okf:reindex`. Do not edit any files as part of validation.
