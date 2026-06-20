@@ -26,7 +26,6 @@ status: stable
 created: 2026-06-01
 updated: 2026-06-19
 tags: [learning, memory]
-links: [forgetting-curve]
 sources:
   - title: "Ebbinghaus, Memory: A Contribution to Experimental Psychology"
     url: https://example.com/ebbinghaus
@@ -40,10 +39,10 @@ occur just before predicted recall failure.
 Each successful retrieval strengthens the memory trace and flattens the curve.
 ```
 
-The `links: [forgetting-curve]` frontmatter entry is **generated** by
-`/cc-okf:reindex` from the body's `[[forgetting-curve]]` wiki-link — do not
-hand-edit it. Body `[[id]]` references are the source of truth; `/cc-okf:validate`
-checks them directly (a dangling body `[[id]]` is an ERROR).
+Body `[[forgetting-curve]]` is the link source of truth. There is no `links:`
+frontmatter field — body links are read directly by `/cc-okf:validate` and
+`/cc-okf:reindex`. A dangling `[[id]]` is a WARN (not an ERROR), so you can
+reference a concept before it exists.
 
 ## Concept: `concepts/forgetting-curve.md`
 
@@ -59,14 +58,13 @@ tags: [learning, memory]
 ---
 
 The forgetting curve describes the exponential decay of retention over time
-without reinforcement. Spaced review (see [[spaced-repetition]]) slows the decay.
+without reinforcement. Spaced review (see [spaced repetition](spaced-repetition.md))
+slows the decay.
 ```
 
-This concept does not declare `links` in frontmatter even though its body
-references `[[spaced-repetition]]`. After running `/cc-okf:reindex`, the generated
-`links: [spaced-repetition]` entry will be spliced in automatically. Until then,
-`/cc-okf:validate` reports a WARN (stale `links:`) but not an ERROR — the body
-wiki-link itself resolves, so referential integrity is intact.
+This concept uses a markdown link `[spaced repetition](spaced-repetition.md)` to
+reference `spaced-repetition`. Both `[[wiki]]` and `[text](target.md)` forms are
+recognized; wiki-links are preferred for in-bundle references.
 
 ## Generated `index.md` (after `/cc-okf:reindex`)
 
@@ -117,15 +115,15 @@ Promoted spaced-repetition to status: stable and added Ebbinghaus citation.
 ---
 id: wrong-id          # ERROR C3: filename is gamma.md, so id must be "gamma"
 title: Gamma
-type: bogus           # ERROR C5: not an allowed type
+type: concept
 created: 2026-06-20
 updated: 2026-06-05   # ERROR C8: updated is before created
-links: [does-not-exist]   # WARN X2: links: out of sync with body — run /cc-okf:reindex
 ---
 
-Body cites [[also-missing]].   # ERROR X1: body wiki-link does not resolve
+Body cites [[also-missing]].   # WARN X1: body wiki-link does not resolve (advisory)
 ```
 
-Fixes: rename the file to match `id` (or fix `id`), set `type` to an allowed
-value, correct the dates so `updated >= created`, and repoint or remove the
-dangling `links`/`[[wiki-link]]` targets. Then `/cc-okf:reindex` and `/cc-okf:validate`.
+Fixes: rename the file to match `id` (or fix `id`), correct the dates so
+`updated >= created`. The dangling `[[also-missing]]` is only a WARN — it will
+not prevent the bundle from passing validation, but `/cc-okf:validate` will report
+it so you can create the missing concept when ready.

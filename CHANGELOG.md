@@ -4,6 +4,32 @@ All notable changes to the OKF plugin are documented here. The format is based o
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## 0.2.1
+
+Permissive & interoperable — every change makes the format MORE permissive; no
+v0.2-conformant bundle becomes non-conformant.
+
+- **§1 X1 ERROR→WARN:** dangling body `[[id]]` links are now advisory (WARN),
+  not failures. Supports "reference now, create later" authoring. Exit 0.
+- **§2 Relaxed required fields:** only `id` and `type` are required (C2).
+  `title`, `created`, `updated` are recommended. When `title` is absent,
+  `index.md` and query output show the filename stem.
+- **§3 Open type/status enums (C5/C6 removed):** `type` and `status` are
+  free-form strings. Known values remain documented conventions but are no longer
+  enforced by the validator.
+- **§4 Drop `links:` mirror:** the generated `links:` frontmatter field is
+  removed. Body links are now the single source of truth — no generated mirror,
+  no drift. `/cc-okf:reindex` strips any existing `links:` field idempotently (with a
+  migration notice on the first run that removes it). Rule X2 (stale `links:`)
+  is removed.
+- **§5 Markdown links in the link graph:** `[text](target.md)` links alongside
+  `[[wiki]]` links are recognized by the extractor. Flat-model resolution: strip
+  `./`, `concepts/`, `.md`, `#fragment`, `?query`. Dangling markdown links follow
+  the same §1 WARN rule as wiki links.
+- Backward compatible: all v0.2-conformant bundles remain conformant under
+  v0.2.1. First `reindex` run on a v0.2 bundle strips the `links:` field with a
+  migration notice.
+
 ## 0.2.0
 
 - Link graph deduplicated: body `[[id]]` is now the single source of truth;

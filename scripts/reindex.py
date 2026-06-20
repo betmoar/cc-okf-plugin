@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""OKF index regenerator + link-graph generator.
+"""OKF index regenerator.
 
-Two responsibilities:
-  1. Regenerate the `links:` frontmatter of every concept from its body
-     `[[id]]` wiki-links (surgical splice; skip-if-unchanged).
+Responsibilities:
+  1. Strip any deprecated `links:` frontmatter from every concept (idempotent;
+     prints a migration notice on the run that actually removes a field).
   2. Rebuild the generated table in index.md.
 
 Usage:
@@ -46,7 +46,7 @@ def collect_concepts(concepts_dir: str) -> list:
             continue
         rows.append({
             "id": str(fm.get("id") or fname[:-3]),
-            "title": str(fm.get("title") or ""),
+            "title": str(fm.get("title") or fname[:-3]),
             "type": str(fm.get("type") or ""),
             "status": str(fm.get("status") or ""),
             "updated": str(fm.get("updated") or ""),
@@ -81,16 +81,14 @@ def splice_index(existing: str, table: str) -> str:
     return f"# Index\n\n{table}\n"
 
 
-def _link_id(entry) -> str:
-    """Extract a clean string id from a links: entry (dict-form or plain string)."""
-    if isinstance(entry, dict):
-        return str(entry.get("id", entry))
-    return str(entry)
-
-
 def regenerate_links(bundle: str, dry_run: bool) -> int:
-    """Splice each concept's links: from its body. Returns count of files that
-    changed (or would change, under dry_run). Prints migration notices."""
+    """Strip the deprecated `links:` field from every concept (idempotent).
+
+    Calls splice_links(text, []) which removes the links: key if present and is
+    a no-op when it is already absent. On the run where a field is actually
+    removed, prints the migration notice. Returns count of files changed (or
+    that would change under dry_run).
+    """
     concepts_dir = os.path.join(bundle, "concepts")
     if not os.path.isdir(concepts_dir):
         return 0
@@ -99,16 +97,11 @@ def regenerate_links(bundle: str, dry_run: bool) -> int:
         path = os.path.join(concepts_dir, fname)
         with open(path, "r", encoding="utf-8") as fh:
             text = fh.read()
-        body_links = oc.extract_wikilinks(oc.body_of(text))
-        old_fm = oc.parse_frontmatter(text) or {}
-        old_links = [_link_id(x) for x in oc._as_list(old_fm.get("links"))]
-        dropped = [x for x in old_links if x not in body_links]
-        if dropped:
-            print(f"concepts/{fname}: dropped non-body links {dropped} "
-                  f"— re-add via [[…]] in the body to keep them")
-        spliced = oc.splice_links(text, body_links)
+        spliced = oc.splice_links(text, [])
         if spliced != text:
             changed += 1
+            print(f"concepts/{fname}: removed deprecated 'links:' field "
+                  f"— body links are now the source of truth")
             if not dry_run:
                 with open(path, "w", encoding="utf-8") as fh:
                     fh.write(spliced)

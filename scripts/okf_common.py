@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Shared OKF helpers: frontmatter parsing, wiki-link extraction, and the
+"""Shared OKF helpers: frontmatter parsing, link extraction, and the
 surgical `links:` splicer. Imported by validate/reindex/rename/query.
 
 Python 3.8+ stdlib only. PyYAML used when present (and OKF_NO_YAML unset);
@@ -11,7 +11,43 @@ import os
 import re
 
 WIKILINK_RE = re.compile(r"\[\[([a-z0-9][a-z0-9-]*)\]\]")
+# Markdown link [text](target) — captures target only.
+MDLINK_RE = re.compile(r"\[(?:[^\[\]]*)\]\(([^)]+)\)")
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+
+
+def _resolve_md_target(target: str):
+    """Resolve a markdown link target to a flat concept id, or return None.
+
+    Flat model resolution (§5):
+      - Strip a scheme (https?://...) → reject (external URL)
+      - Strip leading / or ./
+      - Strip a leading concepts/ prefix
+      - Strip a trailing .md suffix
+      - Strip a trailing #fragment or ?query
+      - Reject if the result still contains / (subdirectory) or .. (escape)
+    """
+    t = target.strip()
+    # Reject external URLs
+    if re.match(r"^https?://", t):
+        return None
+    # Strip leading / or ./
+    t = re.sub(r"^\.?/", "", t)
+    # Strip concepts/ prefix
+    if t.startswith("concepts/"):
+        t = t[len("concepts/"):]
+    # Strip trailing #fragment or ?query
+    t = re.split(r"[#?]", t)[0]
+    # Strip .md suffix
+    if t.endswith(".md"):
+        t = t[:-3]
+    # Reject if a / or .. remains (subdir or escape — flat model only)
+    if "/" in t or ".." in t:
+        return None
+    # Must be a valid id
+    if not ID_RE.match(t):
+        return None
+    return t
 
 
 def _coerce(val: str):
@@ -95,13 +131,35 @@ def _as_list(value):
     return value if isinstance(value, list) else [value]
 
 
-def extract_wikilinks(body: str) -> list:
+def extract_links(body: str) -> list:
+    """Extract all concept ids referenced in body via [[wiki]] or [text](md) links.
+
+    Returns a deduped, ordered list of ids (first occurrence wins). [[wiki]]
+    links are the preferred form; markdown links are accepted for interchange
+    compatibility (§5). Markdown targets that do not resolve in the flat model
+    (external URLs, subdirectory paths, ..) are silently skipped here — callers
+    that need to report dangling markdown links should compare the resolved set
+    against their known-id set and warn on misses, just as they do for wiki links.
+    """
     seen: list = []
-    for m in WIKILINK_RE.finditer(body):
-        wid = m.group(1)
-        if wid not in seen:
-            seen.append(wid)
+    # Scan both forms together by finding all matches and sorting by position.
+    wiki_matches = [(m.start(), m.group(1), "wiki") for m in WIKILINK_RE.finditer(body)]
+    md_matches = [(m.start(), m.group(1), "md") for m in MDLINK_RE.finditer(body)]
+    all_matches = sorted(wiki_matches + md_matches, key=lambda x: x[0])
+    for _, raw, kind in all_matches:
+        if kind == "wiki":
+            cid = raw
+        else:
+            cid = _resolve_md_target(raw)
+            if cid is None:
+                continue
+        if cid not in seen:
+            seen.append(cid)
     return seen
+
+
+# Backwards-compatibility alias — external callers and existing tests use this name.
+extract_wikilinks = extract_links
 
 
 def _fm_lines(text: str):

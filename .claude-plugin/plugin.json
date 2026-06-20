@@ -1,7 +1,7 @@
 {
   "name": "cc-okf",
   "description": "Read, write, validate, and maintain Open Knowledge Format (OKF) knowledge bundles — directories of markdown concept files with YAML frontmatter, an index.md, a log.md, cross-links, and citations.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": {
     "name": "betmoar"
   },

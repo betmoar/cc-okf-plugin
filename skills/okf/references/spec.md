@@ -43,23 +43,24 @@ YAML frontmatter block followed by a markdown body.
 
 The frontmatter is delimited by a leading `---` line and a closing `---` line.
 
-| Field     | Req | Type        | Rule |
-| --------- | --- | ----------- | ---- |
-| `id`      | yes | string      | kebab-case (`^[a-z0-9][a-z0-9-]*$`); MUST equal the filename stem; unique within the bundle |
-| `title`   | yes | string      | human-readable, non-empty |
-| `type`    | yes | string      | one of `concept`, `decision`, `reference`, `glossary` |
-| `created` | yes | date        | ISO `YYYY-MM-DD` |
-| `updated` | yes | date        | ISO `YYYY-MM-DD`; MUST be `>= created` |
-| `status`  | no  | string      | one of `draft`, `review`, `stable`, `deprecated` (default `draft`) |
-| `tags`    | no  | list        | kebab-case tags |
-| `links`   | no  | list        | **generated** by `/cc-okf:reindex` from body `[[id]]` wiki-links — do not hand-edit |
-| `sources` | no  | list        | citations; each entry has a `title` and an optional `url` |
+| Field     | Req         | Type        | Rule |
+| --------- | ----------- | ----------- | ---- |
+| `id`      | required    | string      | kebab-case (`^[a-z0-9][a-z0-9-]*$`); MUST equal the filename stem; unique within the bundle |
+| `type`    | required    | string      | free-form; conventional values: `concept`, `decision`, `reference`, `glossary` |
+| `title`   | recommended | string      | human-readable; when absent, consumers derive from the filename stem |
+| `created` | recommended | date        | ISO `YYYY-MM-DD` |
+| `updated` | recommended | date        | ISO `YYYY-MM-DD`; MUST be `>= created` when both present |
+| `status`  | optional    | string      | free-form; conventional values: `draft`, `review`, `stable`, `deprecated` |
+| `tags`    | optional    | list        | kebab-case tags |
+| `sources` | optional    | list        | citations; each entry has a `title` and an optional `url` |
 
 `id` is the stable identity of a concept. Other concepts reference it, so it
 SHOULD NOT change. To rename, use `/cc-okf:rename <old-id> <new-id>` — it updates
 the filename, the `id`, all referencing body `[[wiki-link]]` occurrences, and
-reindexes automatically. (`links:` is generated; only body wiki-links require
-updating in a manual rename.)
+reindexes automatically.
+
+`type` and `status` are free-form; the conventional values are documented above
+and used for grouping and filtering, but any producer-defined value is valid.
 
 ### 2.2 Body
 
@@ -67,23 +68,24 @@ The body is ordinary markdown. It SHOULD open with a short definition or summary
 and MAY use any headings, lists, or code blocks. Two body conventions are
 load-bearing:
 
-- **Cross-links**: write `[[other-id]]` to reference another concept. Body
-  `[[id]]` wiki-links are the canonical source of truth for the link graph.
-  `/cc-okf:reindex` reads them and writes the `links:` frontmatter field — do not
-  hand-edit `links:`. A dangling `[[id]]` (no matching concept) is an ERROR.
+- **Cross-links**: write `[[other-id]]` to reference another concept, or use a
+  markdown link `[text](other-id.md)`. Body links are the canonical source of
+  truth for the link graph. A dangling link (no matching concept) is a WARN —
+  tolerated for incremental authoring ("reference now, create later").
 - **Citations**: prefer recording sources in the `sources` frontmatter list.
   The body MAY additionally use markdown links or footnotes, but `sources` is
   the canonical, checkable citation record.
 
 ### 2.3 Types
 
+Conventional types (for grouping and query filtering):
+
 - `concept` — a general idea, technique, or unit of knowledge.
 - `decision` — a recorded decision (what was decided and why).
 - `reference` — an external fact, API, schema, or quote captured for reuse.
 - `glossary` — a short term definition.
 
-Types are advisory groupings; they affect ordering in `index.md` but impose no
-extra required fields in v0.1.
+Producers MAY use any type value; the validator does not enforce the list.
 
 ## 3. index.md
 
@@ -100,6 +102,7 @@ The generator replaces only the content between these markers; any prose before
 absent, the generator appends a fresh block (and adds a `# Index` heading if the
 file is empty/new). The table lists, per concept: id (linked to its file),
 title, type, status, updated date, and tags. Rows are sorted by `(type, id)`.
+When a concept has no `title`, the table shows the filename stem.
 
 Because the table is generated, hand-edits inside the markers are lost on the
 next reindex. Edit concept files, then reindex.
@@ -121,33 +124,27 @@ The log is the human-readable record of intent that complements git history.
 
 ## 5. Cross-link integrity
 
-Body `[[id]]` wiki-links are the canonical source of the link graph. `/cc-okf:reindex`
-generates the `links:` frontmatter field from them; `links:` MUST NOT be
-hand-authored. A bundle has referential integrity when every body `[[id]]`
-resolves to an existing concept id in the same bundle (ERROR if not). A `links:`
-field that is out of sync with the body is a WARN — run `/cc-okf:reindex` to fix it.
-Dangling body wiki-links are the most common conformance failure and are reported
-by `/cc-okf:validate`.
+Body links are the single source of truth for the link graph. There is no
+generated `links:` frontmatter field; body links are machine-readable directly
+via the extractor.
 
-### Migration notice (v0.1 → v0.2)
+Two link forms are recognized:
 
-On the first v0.2 `/cc-okf:reindex`, hand-authored `links:` entries that have no
-backing body `[[id]]` are dropped. Additionally, any dict-form `links:` entries
-(an undocumented v0.1 shape) are not carried over. To preserve a link, add a
-`[[target-id]]` wiki-link in the concept body before reindexing. Pass `--dry-run`
-first to preview what would be dropped.
+- **`[[other-id]]`** — wiki-link (primary, preferred form).
+- **`[text](target)`** — markdown link (accepted for interchange compatibility).
+  Resolution in the flat model: strip a leading `/` or `./`, strip a `concepts/`
+  prefix, strip a trailing `.md`, ignore `#fragment` or `?query`. A target with
+  `..`, an external host, or a residual `/` does not resolve (flat model has no
+  subdirectories) and is treated as a dangling link.
+
+A dangling link (either form) is a **WARN** — tolerated for the "reference now,
+create later" authoring pattern. Run `/cc-okf:validate` to see the advisory list.
 
 ### Known limitations
 
-**Code fences are not parsed.** `WIKILINK_RE` matches `[[id]]` even inside
-fenced code blocks. Under v0.2 such a token is treated as a real link (it
-populates `links:`, and a dangling one is an ERROR). Avoid `[[…]]` inside code
-samples or escape it. Proper fence-aware extraction is a v0.3 item.
-
-**CRLF line endings are normalized on rewrite.** Concept files with CRLF
-(`\r\n`) line endings are normalized to LF when `/cc-okf:reindex` rewrites a
-file's `links:` field (text-mode I/O + `split("\n")` join). Files whose `links:`
-does not change are left byte-identical.
+**Code fences are not parsed.** The link extractors match `[[id]]` and
+`[text](target)` even inside fenced code blocks. Avoid `[[…]]` inside code
+samples or escape it.
 
 ## 6. Versioning
 
@@ -155,3 +152,15 @@ This is OKF v0.1. Future versions MAY add fields or types; tools SHOULD ignore
 unknown frontmatter fields rather than failing on them, so bundles remain
 forward-compatible. Conformance rules and severities are listed in
 `conformance.md`.
+
+### v0.2.1 enforcement notes
+
+Under v0.2.1 tooling:
+
+- Only `id` and `type` are required (C2 relaxed).
+- `type` and `status` are free-form (C5/C6 removed).
+- Dangling body links are WARN not ERROR (X1 relaxed).
+- There is no generated `links:` field; `/cc-okf:reindex` strips any existing
+  `links:` from v0.2 bundles on first run.
+- Markdown links `[text](target.md)` are recognized in the link graph alongside
+  `[[wiki]]` links.

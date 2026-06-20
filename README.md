@@ -17,7 +17,7 @@ don't use OKF.
 | Skill `okf`             | `skills/okf/`          | Pure knowledge: how to read/write OKF, the spec, conformance rules, examples. Loads on demand.                                                 |
 | Command `/cc-okf:activate` | `commands/activate.md` | Opt a project into OKF (writes `.okf/active`).                                                                                                 |
 | Command `/cc-okf:validate` | `commands/validate.md` | Check a bundle against conformance rules.                                                                                                      |
-| Command `/cc-okf:reindex`  | `commands/reindex.md`  | Regenerate `index.md` from concept frontmatter and regenerate each concept's `links:` from its body `[[id]]` wiki-links. Supports `--dry-run`. |
+| Command `/cc-okf:reindex`  | `commands/reindex.md`  | Rebuild `index.md` from concept frontmatter; strip any legacy `links:` field. Supports `--dry-run`. |
 | Command `/cc-okf:log`      | `commands/log.md`      | Append a timestamped entry to `log.md`.                                                                                                        |
 | Command `/cc-okf:rename`   | `commands/rename.md`   | Rename a concept, rewriting its filename, `id:`, and every cross-link `[[old]]` → `[[new]]` across the bundle.                                 |
 | Command `/cc-okf:query`    | `commands/query.md`    | Find concepts by `--tag`, `--type`, `--status`, or `--text` (AND-combined).                                                                    |
@@ -111,6 +111,14 @@ hand-editing the file.
 - The Python scripts need only the **Python 3 standard library** (PyYAML is used
   if present, but is not required — there is a built-in frontmatter parser).
 - `okf-gate.sh` is a POSIX `bash` script.
+
+## Changelog highlights
+
+**v0.2.1** — permissive & interoperable: `type`/`status` are now free-form
+(any value accepted), `title`/`created`/`updated` are recommended not required,
+dangling links are tolerated as WARNs, markdown `[text](target.md)` links are
+recognized alongside `[[wiki]]` links, and the generated `links:` field is
+removed (body links are the single source of truth).
 
 ## Development & versioning
 

@@ -38,7 +38,7 @@ def query(bundle, tag=None, type=None, status=None, text=None) -> list:
                 continue
         rows.append({
             "id": str(fm.get("id") or fname[:-3]),
-            "title": str(fm.get("title") or ""),
+            "title": str(fm.get("title") or fname[:-3]),
             "type": str(fm.get("type") or ""),
             "status": str(fm.get("status") or ""),
             "tags": ", ".join(tags),

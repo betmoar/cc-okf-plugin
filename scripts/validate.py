@@ -21,9 +21,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import okf_common as oc  # noqa: E402
 
-ALLOWED_TYPES = {"concept", "decision", "reference", "glossary"}
-ALLOWED_STATUS = {"draft", "review", "stable", "deprecated"}
-REQUIRED_FIELDS = ("id", "title", "type", "created", "updated")
+REQUIRED_FIELDS = ("id", "type")
 # Matches the first cell of a generated index row, tolerating the markdown-link
 # form `| [`id`](concepts/id.md) |`, a bare `| `id` |`, or a plain `| id |`.
 INDEX_ROW_RE = re.compile(r"^\|\s*\[?`?([a-z0-9][a-z0-9-]*)`?", re.MULTILINE)
@@ -105,14 +103,6 @@ def validate_bundle(bundle: str):
             parsed[cid] = {"fm": fm, "body": oc.body_of(text), "scope": scope,
                            "text": text}
 
-        ctype = fm.get("type")
-        if ctype and ctype not in ALLOWED_TYPES:
-            err(scope, f"type '{ctype}' not in {sorted(ALLOWED_TYPES)}")
-
-        status = fm.get("status")
-        if status and status not in ALLOWED_STATUS:
-            err(scope, f"status '{status}' not in {sorted(ALLOWED_STATUS)}")
-
         created, updated = fm.get("created"), fm.get("updated")
         if created and not _is_iso_date(created):
             err(scope, f"created '{created}' is not an ISO date (YYYY-MM-DD)")
@@ -133,16 +123,14 @@ def validate_bundle(bundle: str):
                 if not src.strip():
                     warn(scope, "empty source entry")
 
-    # Cross-link integrity. Body [[id]] is the source of truth (ERROR on
-    # dangling). Frontmatter links: is generated — flag it only as stale (WARN).
+    # Cross-link integrity. Body [[id]] links are the source of truth.
+    # Dangling links are advisory (WARN, §1) — tolerated for draft/incremental authoring.
     for cid, info in parsed.items():
         fm, body, scope = info["fm"], info["body"], info["scope"]
         body_links = oc.extract_wikilinks(body)
         for tid in body_links:
             if tid not in ids:
-                err(scope, f"wiki-link [[{tid}]] does not resolve to a concept")
-        if oc.splice_links(info["text"], body_links) != info["text"]:
-            warn(scope, "links: is out of date with the body (run /cc-okf:reindex)")
+                warn(scope, f"wiki-link [[{tid}]] does not resolve to a concept")
 
     # index.md freshness (advisory only — /cc-okf:reindex is the source of truth).
     if os.path.isfile(index_path) and ids:

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """OKF concept rename — link-aware and recoverable.
 
-All KNOWLEDGE writes (body [[old]]->[[new]] rewrites, the id: change, links:
-regeneration) happen while concepts/<old>.md still exists, so an interruption
-there is completable by simply re-running the command (every step is idempotent
-and pre-flight tolerates the id-already-new resume state). The file rename
-(os.rename, a single atomic POSIX syscall) is the last hard mutation; the only
-step after it is rebuilding index.md, which is regenerable — if that is
-interrupted, `/cc-okf:reindex` repairs it.
+All KNOWLEDGE writes (body [[old]]->[[new]] rewrites, the id: change) happen
+while concepts/<old>.md still exists, so an interruption there is completable
+by simply re-running the command (every step is idempotent and pre-flight
+tolerates the id-already-new resume state). The file rename (os.rename, a
+single atomic POSIX syscall) is the last hard mutation; the only step after it
+is rebuilding index.md, which is regenerable — if that is interrupted,
+`/cc-okf:reindex` repairs it.
 
 Usage:
     python3 rename.py <old-id> <new-id> [bundle-path]
@@ -80,14 +80,10 @@ def rename(bundle: str, old_id: str, new_id: str) -> int:
     with open(old_path, "w", encoding="utf-8") as fh:
         fh.write(oc.set_id(text, new_id))
 
-    # 4. Regenerate links: in every concept (a KNOWLEDGE write) while <old>.md
-    #    still exists, so an interruption here is completable by re-running.
-    reindex.regenerate_links(bundle, dry_run=False)
-
-    # 5. LAST hard mutation, atomic: rename the file.
+    # 4. LAST hard mutation, atomic: rename the file.
     os.rename(old_path, new_path)
 
-    # 6. Rebuild index.md AFTER the rename so its rows point at <new>.md. This is
+    # 5. Rebuild index.md AFTER the rename so its rows point at <new>.md. This is
     #    regenerable: if it is interrupted, `/cc-okf:reindex` repairs the index.
     reindex.rebuild_index(bundle, dry_run=False)
 
