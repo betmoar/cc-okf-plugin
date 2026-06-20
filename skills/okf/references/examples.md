@@ -40,9 +40,10 @@ occur just before predicted recall failure.
 Each successful retrieval strengthens the memory trace and flattens the curve.
 ```
 
-Note how the body's `[[forgetting-curve]]` wiki-link is mirrored by the
-`links: [forgetting-curve]` frontmatter entry — the body link is for humans, the
-frontmatter entry is the machine-readable graph that `/okf:validate` checks.
+The `links: [forgetting-curve]` frontmatter entry is **generated** by
+`/cc-okf:reindex` from the body's `[[forgetting-curve]]` wiki-link — do not
+hand-edit it. Body `[[id]]` references are the source of truth; `/cc-okf:validate`
+checks them directly (a dangling body `[[id]]` is an ERROR).
 
 ## Concept: `concepts/forgetting-curve.md`
 
@@ -62,11 +63,12 @@ without reinforcement. Spaced review (see [[spaced-repetition]]) slows the decay
 ```
 
 This concept does not declare `links` in frontmatter even though its body
-references `[[spaced-repetition]]`. That is allowed: the unmatched wiki-link is a
-WARN, not an ERROR. To make the relationship load-bearing in the graph, add
-`links: [spaced-repetition]`.
+references `[[spaced-repetition]]`. After running `/cc-okf:reindex`, the generated
+`links: [spaced-repetition]` entry will be spliced in automatically. Until then,
+`/cc-okf:validate` reports a WARN (stale `links:`) but not an ERROR — the body
+wiki-link itself resolves, so referential integrity is intact.
 
-## Generated `index.md` (after `/okf:reindex`)
+## Generated `index.md` (after `/cc-okf:reindex`)
 
 ```markdown
 # Index
@@ -86,7 +88,7 @@ _Generated: 2 concept(s)._
 Any prose placed before `BEGIN` or after `END` survives reindexing; only the
 table between the markers is regenerated.
 
-## `log.md` (after a few `/okf:log` calls)
+## `log.md` (after a few `/cc-okf:log` calls)
 
 ```markdown
 # Log
@@ -102,12 +104,12 @@ Promoted spaced-repetition to status: stable and added Ebbinghaus citation.
 
 ## Typical workflow
 
-1. `/okf:activate` — writes `.okf/active`; restart the session so the gate fires.
+1. `/cc-okf:activate` — writes `.okf/active`; restart the session so the gate fires.
 2. Create or edit `concepts/<id>.md` files (this is where the `okf` skill's
    conventions apply).
-3. `/okf:reindex` — refresh `index.md`.
-4. `/okf:log "what changed"` — record the change.
-5. `/okf:validate` — confirm conformance (expect `0 error(s)`).
+3. `/cc-okf:reindex` — refresh `index.md`.
+4. `/cc-okf:log "what changed"` — record the change.
+5. `/cc-okf:validate` — confirm conformance (expect `0 error(s)`).
 
 ## A non-conformant example and its fixes
 
@@ -118,12 +120,12 @@ title: Gamma
 type: bogus           # ERROR C5: not an allowed type
 created: 2026-06-20
 updated: 2026-06-05   # ERROR C8: updated is before created
-links: [does-not-exist]   # ERROR X1: no such concept
+links: [does-not-exist]   # WARN X2: links: out of sync with body — run /cc-okf:reindex
 ---
 
-Body cites [[also-missing]].   # WARN X2: unresolved wiki-link
+Body cites [[also-missing]].   # ERROR X1: body wiki-link does not resolve
 ```
 
 Fixes: rename the file to match `id` (or fix `id`), set `type` to an allowed
 value, correct the dates so `updated >= created`, and repoint or remove the
-dangling `links`/`[[wiki-link]]` targets. Then `/okf:reindex` and `/okf:validate`.
+dangling `links`/`[[wiki-link]]` targets. Then `/cc-okf:reindex` and `/cc-okf:validate`.

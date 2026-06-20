@@ -21,8 +21,8 @@ Do the following:
    ```
 
 2. If the bundle does not yet have `concepts/`, `index.md`, or `log.md`, tell the
-   user they can initialize them with `/okf:reindex` (creates `index.md`) and
-   `/okf:log` (creates `log.md`). Do not fabricate concepts.
+   user they can initialize them with `/cc-okf:reindex` (creates `index.md`) and
+   `/cc-okf:log` (creates `log.md`). Do not fabricate concepts.
 
 3. Optionally, if a project `CLAUDE.md` exists, offer to append a single
    human-readable line noting that OKF is active and pointing at the bundle.

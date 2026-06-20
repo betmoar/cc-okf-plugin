@@ -15,7 +15,7 @@ sentinel="${project_dir}/.okf/active"
 
 if [ -f "$sentinel" ]; then
   cat <<'JSON'
-{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"OKF is active for this project (an .okf/active sentinel is present). Follow the okf skill's conventions when reading, writing, or editing knowledge bundles in this project. Lifecycle commands: /okf:validate (check conformance), /okf:reindex (regenerate index.md), /okf:log (append a log entry), /okf:activate (re-run activation)."}}
+{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"OKF is active for this project (an .okf/active sentinel is present). Follow the okf skill's conventions when reading, writing, or editing knowledge bundles in this project. Lifecycle commands: /cc-okf:validate (check conformance), /cc-okf:reindex (regenerate index.md), /cc-okf:log (append a log entry), /cc-okf:activate (re-run activation)."}}
 JSON
 fi
 
