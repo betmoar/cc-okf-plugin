@@ -12,17 +12,17 @@ don't use OKF.
 
 ## What's inside
 
-| Component | Path | Purpose |
-| --------- | ---- | ------- |
-| Skill `okf` | `skills/okf/` | Pure knowledge: how to read/write OKF, the spec, conformance rules, examples. Loads on demand. |
-| Command `/okf:activate` | `commands/activate.md` | Opt a project into OKF (writes `.okf/active`). |
-| Command `/okf:validate` | `commands/validate.md` | Check a bundle against conformance rules. |
-| Command `/okf:reindex` | `commands/reindex.md` | Regenerate `index.md` from concept frontmatter and regenerate each concept's `links:` from its body `[[id]]` wiki-links. Supports `--dry-run`. |
-| Command `/okf:log` | `commands/log.md` | Append a timestamped entry to `log.md`. |
-| Command `/okf:rename` | `commands/rename.md` | Rename a concept, rewriting its filename, `id:`, and every cross-link `[[old]]` → `[[new]]` across the bundle. |
-| Command `/okf:query` | `commands/query.md` | Find concepts by `--tag`, `--type`, `--status`, or `--text` (AND-combined). |
-| Hook | `hooks/hooks.json` | SessionStart gate — emits a short OKF pointer only when `.okf/active` exists. |
-| Scripts | `scripts/` | `okf-gate.sh`, `okf_common.py`, `validate.py`, `reindex.py`, `rename.py`, `query.py`, `append-log.py`. |
+| Component               | Path                   | Purpose                                                                                                                                        |
+| ----------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Skill `okf`             | `skills/okf/`          | Pure knowledge: how to read/write OKF, the spec, conformance rules, examples. Loads on demand.                                                 |
+| Command `/okf:activate` | `commands/activate.md` | Opt a project into OKF (writes `.okf/active`).                                                                                                 |
+| Command `/okf:validate` | `commands/validate.md` | Check a bundle against conformance rules.                                                                                                      |
+| Command `/okf:reindex`  | `commands/reindex.md`  | Regenerate `index.md` from concept frontmatter and regenerate each concept's `links:` from its body `[[id]]` wiki-links. Supports `--dry-run`. |
+| Command `/okf:log`      | `commands/log.md`      | Append a timestamped entry to `log.md`.                                                                                                        |
+| Command `/okf:rename`   | `commands/rename.md`   | Rename a concept, rewriting its filename, `id:`, and every cross-link `[[old]]` → `[[new]]` across the bundle.                                 |
+| Command `/okf:query`    | `commands/query.md`    | Find concepts by `--tag`, `--type`, `--status`, or `--text` (AND-combined).                                                                    |
+| Hook                    | `hooks/hooks.json`     | SessionStart gate — emits a short OKF pointer only when `.okf/active` exists.                                                                  |
+| Scripts                 | `scripts/`             | `okf-gate.sh`, `okf_common.py`, `validate.py`, `reindex.py`, `rename.py`, `query.py`, `append-log.py`.                                         |
 
 Architecture: the **skill is knowledge** (no side effects); the **commands are
 actions** that run the shared **scripts**. A skill cannot invoke a slash command,
@@ -33,8 +33,8 @@ so knowledge and lifecycle actions are kept separate but share `scripts/` via
 
 OKF sits between two things you may already use:
 
-- **vs. a personal vault (Obsidian/Foam/Dendron):** OKF lives *in the project's
-  own git repo* and is maintained through explicit commands (`/okf:reindex`,
+- **vs. a personal vault (Obsidian/Foam/Dendron):** OKF lives _in the project's
+  own git repo_ and is maintained through explicit commands (`/okf:reindex`,
   `/okf:rename`, …) that Claude runs as it works — it's team-visible project
   knowledge, not a personal note store. (The plugin stays dormant until you
   `/okf:activate` a project.)
@@ -42,8 +42,8 @@ OKF sits between two things you may already use:
   memory scoped to you; an OKF bundle is durable, reviewable knowledge committed
   alongside the code it describes, shared by everyone who clones the repo.
 
-Reach for OKF when the knowledge belongs to the *project* and should live in its
-history. Use a vault or memory when it belongs to *you*.
+Reach for OKF when the knowledge belongs to the _project_ and should live in its
+history. Use a vault or memory when it belongs to _you_.
 
 ## Install
 
@@ -51,17 +51,21 @@ This repo is the plugin itself. It's distributed through a separate marketplace
 catalog repo that points here via a GitHub source
 (`{ "source": "github", "repo": "betmoar/cc-okf-plugin" }`):
 
-```
+```bash
 /plugin marketplace add betmoar/ccp-market
 /plugin install okf@betmoar
 ```
 
+## Install (local testing)
+
 (`betmoar` is the marketplace's `name`, not this repo.) For local development
 without a marketplace, load the plugin straight from disk:
 
-```
+```bash
 claude --plugin-dir /path/to/cc-okf-plugin
 ```
+
+Then `/repete <your mission>` in a project. `/repete-cancel` (or delete `.repete/`) to stop.
 
 ## Quick start
 
