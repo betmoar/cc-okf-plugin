@@ -46,4 +46,7 @@ __pycache__/
 
 # Plugin-specific
 .claude/
-.remember/
+
+
+# Development documentation — not shipped with the plugin
+docs/

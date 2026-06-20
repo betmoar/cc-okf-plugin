@@ -29,35 +29,42 @@ An OKF bundle is a directory containing:
   YAML frontmatter plus a markdown body.
 - `index.md` — a generated catalog of all concepts. The table between the
   `<!-- OKF:INDEX:BEGIN ... -->` and `<!-- OKF:INDEX:END -->` markers is owned by
-  `/okf:reindex`; do not hand-edit it. Prose outside the markers is preserved.
-- `log.md` — an append-only history of changes, managed by `/okf:log`. Never
+  `/cc-okf:reindex`; do not hand-edit it. Prose outside the markers is preserved.
+- `log.md` — an append-only history of changes, managed by `/cc-okf:log`. Never
   rewrite or reorder existing entries.
-- `.okf/active` — the per-project activation sentinel, written by `/okf:activate`.
+- `.okf/active` — the per-project activation sentinel, written by `/cc-okf:activate`.
 
 ## Concept frontmatter
 
 Every concept file begins with a YAML frontmatter block. Required fields:
-`id`, `title`, `type`, `created`, `updated`. Common optional fields: `status`,
-`tags`, `links`, `sources`.
+`id`, `type`. Recommended fields: `title`, `created`, `updated`. Common
+optional fields: `status`, `tags`, `sources`.
+
+`type` and `status` are **free-form** — any value is accepted; the conventional
+values are documented for grouping and filtering but not enforced.
 
 ```yaml
 ---
 id: spaced-repetition          # required; kebab-case; MUST equal the filename stem
-title: Spaced Repetition       # required; human-readable
-type: concept                  # required; concept | decision | reference | glossary
-status: stable                 # optional; draft | review | stable | deprecated
-created: 2026-06-01            # required; ISO date YYYY-MM-DD
-updated: 2026-06-19            # required; ISO date; must be >= created
+type: concept                  # required; free-form — conventional: concept | decision | reference | glossary
+title: Spaced Repetition       # recommended; when absent, consumers derive from filename stem
+status: stable                 # optional; free-form — conventional: draft | review | stable | deprecated
+created: 2026-06-01            # recommended; ISO date YYYY-MM-DD
+updated: 2026-06-19            # recommended; ISO date; must be >= created when both present
 tags: [learning, memory]       # optional; list of kebab-case tags
-links: [forgetting-curve]      # optional; list of OTHER concept ids (the link graph)
 sources:                       # optional; list of citations
   - title: Title of the source
     url: https://example.com/article
 ---
 ```
 
-Keep `id` stable once created — other concepts reference it. To rename, update
-the file, the `id`, and every referencing `links`/`[[wiki-link]]`, then reindex.
+There is **no generated `links:` field**. Body links (`[[wiki]]` or
+`[text](target.md)`) are the single source of truth and are read directly by
+the toolchain. `/cc-okf:reindex` strips any legacy `links:` from v0.2 bundles.
+
+Keep `id` stable once created — other concepts reference it. To rename, use
+`/cc-okf:rename <old-id> <new-id>` — it updates the file, the `id`, and all
+referencing body `[[wiki-link]]` occurrences, and reindexes automatically.
 
 ## Reading a bundle
 
@@ -65,8 +72,8 @@ To understand a bundle quickly:
 
 1. Read `index.md` first for the catalog of concepts, their types, and status.
 2. Read `log.md` for recent changes and intent.
-3. Open individual `concepts/<id>.md` files as needed; follow `links` and
-   `[[wiki-links]]` to related concepts.
+3. Open individual `concepts/<id>.md` files as needed; follow `[[wiki-links]]`
+   and `[text](md-links)` to related concepts.
 
 Prefer the index and log as the map; do not read every concept file unless the
 task requires breadth.
@@ -77,18 +84,19 @@ To add a concept:
 
 1. Choose a unique, kebab-case `id`. Create `concepts/<id>.md` (the filename
    stem MUST equal `id`).
-2. Fill required frontmatter. Set `created` and `updated` to today's date.
-3. Write the body. Link related concepts inline with `[[other-id]]` wiki-links,
-   and record the same relationships in the `links` frontmatter list so the link
-   graph is machine-readable.
+2. Fill required frontmatter (`id`, `type`). Add `title`, `created`, `updated`
+   when convenient.
+3. Write the body. Link related concepts inline with `[[other-id]]` wiki-links
+   or `[text](other-id.md)` markdown links. Body links are the source of truth
+   for the link graph — no `links:` field needed.
 4. Cite sources in the `sources` list (each with at least a `title`).
-5. Suggest the user run `/okf:reindex` to refresh `index.md`, and `/okf:log` to
-   record the change.
+5. Suggest the user run `/cc-okf:reindex` to refresh `index.md`, then
+   `/cc-okf:log` to record the change.
 
 To edit an existing concept: change the body/frontmatter, bump `updated` to
 today, preserve `id`, and keep cross-links consistent. When removing a concept,
-also remove or repoint every `links`/`[[wiki-link]]` that targeted it, or
-validation will report dangling links.
+also remove or repoint every `[[wiki-link]]` that targeted it, or validation
+will report a WARN for dangling links.
 
 Cross-link and citation conventions are detailed in `references/spec.md`; worked
 examples are in `references/examples.md`.
@@ -96,22 +104,24 @@ examples are in `references/examples.md`.
 ## Conformance, in brief
 
 A bundle is conformant when: `index.md` and `log.md` exist at the bundle root;
-every concept has the required frontmatter; each `id` is unique and matches its
-filename; `type`/`status` use allowed values; dates are valid ISO dates with
-`updated >= created`; and every `links` target resolves to an existing concept.
-Dangling cross-links and an out-of-date `index.md` are the most common failures.
-The full rule list with severities is in `references/conformance.md`, and
-`/okf:validate` enforces it programmatically.
+every concept has parseable frontmatter with `id` and `type`; each `id` is
+unique and matches its filename; dates (when present) are valid ISO dates with
+`updated >= created`; and every body link resolves to an existing concept (WARN
+if not — tolerant for incremental authoring). An out-of-date `index.md` is
+advisory (WARN). The full rule list with severities is in
+`references/conformance.md`, and `/cc-okf:validate` enforces it programmatically.
 
 ## Lifecycle actions are commands, not this skill
 
 This skill is pure knowledge and performs no side effects. To change bundle
 state, suggest the user run the OKF commands, which execute the bundled scripts:
 
-- `/okf:activate [bundle-path]` — opt this project into OKF (writes `.okf/active`).
-- `/okf:validate [bundle-path]` — check conformance (`scripts/validate.py`).
-- `/okf:reindex [bundle-path]` — regenerate `index.md` (`scripts/reindex.py`).
-- `/okf:log [message]` — append a `log.md` entry (`scripts/append-log.py`).
+- `/cc-okf:activate [bundle-path]` — opt this project into OKF (writes `.okf/active`).
+- `/cc-okf:validate [bundle-path]` — check conformance (`scripts/validate.py`).
+- `/cc-okf:reindex [bundle-path]` — strip any legacy `links:` and rebuild `index.md` (`scripts/reindex.py`).
+- `/cc-okf:log [message]` — append a `log.md` entry (`scripts/append-log.py`).
+- `/cc-okf:rename <old-id> <new-id>` — link-aware, recoverable concept rename (updates all referencing concepts and reindexes).
+- `/cc-okf:query` — filter concepts by `--tag`, `--type`, `--status`, or `--text` (all filters AND-combined).
 
 A skill cannot invoke a slash command directly. When an action is needed,
 perform the editing work that is in scope, then tell the user the exact command
@@ -122,6 +132,6 @@ to run.
 - **`references/spec.md`** — the full OKF v0.1 specification (directory layout,
   frontmatter schema, index/log formats, cross-link and citation rules).
 - **`references/conformance.md`** — every conformance rule with its severity,
-  mirroring what `/okf:validate` checks.
+  mirroring what `/cc-okf:validate` checks.
 - **`references/examples.md`** — a complete example bundle: concept files,
   cross-links, citations, and generated `index.md`/`log.md`.

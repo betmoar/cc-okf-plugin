@@ -13,8 +13,8 @@ A **bundle** is a directory that has been OKF-activated. A bundle MUST contain:
 
 ```
 <bundle>/
-├── index.md         # generated catalog (managed by /okf:reindex)
-├── log.md           # append-only change history (managed by /okf:log)
+├── index.md         # generated catalog (managed by /cc-okf:reindex)
+├── log.md           # append-only change history (managed by /cc-okf:log)
 └── concepts/        # one markdown file per concept
     ├── <id>.md
     └── ...
@@ -27,7 +27,7 @@ A project opts a directory into OKF by activation, which writes a sentinel:
 ```
 
 The bundle path defaults to the project root but MAY be a subdirectory (passed
-to `/okf:activate`, `/okf:validate`, etc. as a path argument). When the bundle
+to `/cc-okf:activate`, `/cc-okf:validate`, etc. as a path argument). When the bundle
 is the project root, `index.md`, `log.md`, `concepts/`, and `.okf/` all sit at
 the project root.
 
@@ -43,21 +43,24 @@ YAML frontmatter block followed by a markdown body.
 
 The frontmatter is delimited by a leading `---` line and a closing `---` line.
 
-| Field     | Req | Type        | Rule |
-| --------- | --- | ----------- | ---- |
-| `id`      | yes | string      | kebab-case (`^[a-z0-9][a-z0-9-]*$`); MUST equal the filename stem; unique within the bundle |
-| `title`   | yes | string      | human-readable, non-empty |
-| `type`    | yes | string      | one of `concept`, `decision`, `reference`, `glossary` |
-| `created` | yes | date        | ISO `YYYY-MM-DD` |
-| `updated` | yes | date        | ISO `YYYY-MM-DD`; MUST be `>= created` |
-| `status`  | no  | string      | one of `draft`, `review`, `stable`, `deprecated` (default `draft`) |
-| `tags`    | no  | list        | kebab-case tags |
-| `links`   | no  | list        | ids of OTHER concepts in this bundle (the machine-readable link graph) |
-| `sources` | no  | list        | citations; each entry has a `title` and an optional `url` |
+| Field     | Req         | Type        | Rule |
+| --------- | ----------- | ----------- | ---- |
+| `id`      | required    | string      | kebab-case (`^[a-z0-9][a-z0-9-]*$`); MUST equal the filename stem; unique within the bundle |
+| `type`    | required    | string      | free-form; conventional values: `concept`, `decision`, `reference`, `glossary` |
+| `title`   | recommended | string      | human-readable; when absent, consumers derive from the filename stem |
+| `created` | recommended | date        | ISO `YYYY-MM-DD` |
+| `updated` | recommended | date        | ISO `YYYY-MM-DD`; MUST be `>= created` when both present |
+| `status`  | optional    | string      | free-form; conventional values: `draft`, `review`, `stable`, `deprecated` |
+| `tags`    | optional    | list        | kebab-case tags |
+| `sources` | optional    | list        | citations; each entry has a `title` and an optional `url` |
 
 `id` is the stable identity of a concept. Other concepts reference it, so it
-SHOULD NOT change. Renaming requires updating the filename, the `id`, and every
-referencing `links` entry and `[[wiki-link]]`, followed by a reindex.
+SHOULD NOT change. To rename, use `/cc-okf:rename <old-id> <new-id>` — it updates
+the filename, the `id`, all referencing body `[[wiki-link]]` occurrences, and
+reindexes automatically.
+
+`type` and `status` are free-form; the conventional values are documented above
+and used for grouping and filtering, but any producer-defined value is valid.
 
 ### 2.2 Body
 
@@ -65,26 +68,28 @@ The body is ordinary markdown. It SHOULD open with a short definition or summary
 and MAY use any headings, lists, or code blocks. Two body conventions are
 load-bearing:
 
-- **Cross-links**: write `[[other-id]]` to reference another concept. Every
-  `[[id]]` SHOULD also appear in the `links` frontmatter list so the graph is
-  available without parsing prose.
+- **Cross-links**: write `[[other-id]]` to reference another concept, or use a
+  markdown link `[text](other-id.md)`. Body links are the canonical source of
+  truth for the link graph. A dangling link (no matching concept) is a WARN —
+  tolerated for incremental authoring ("reference now, create later").
 - **Citations**: prefer recording sources in the `sources` frontmatter list.
   The body MAY additionally use markdown links or footnotes, but `sources` is
   the canonical, checkable citation record.
 
 ### 2.3 Types
 
+Conventional types (for grouping and query filtering):
+
 - `concept` — a general idea, technique, or unit of knowledge.
 - `decision` — a recorded decision (what was decided and why).
 - `reference` — an external fact, API, schema, or quote captured for reuse.
 - `glossary` — a short term definition.
 
-Types are advisory groupings; they affect ordering in `index.md` but impose no
-extra required fields in v0.1.
+Producers MAY use any type value; the validator does not enforce the list.
 
 ## 3. index.md
 
-`index.md` is a generated catalog. `/okf:reindex` owns the table delimited by:
+`index.md` is a generated catalog. `/cc-okf:reindex` owns the table delimited by:
 
 ```
 <!-- OKF:INDEX:BEGIN (generated by /okf:reindex — do not edit by hand) -->
@@ -97,13 +102,14 @@ The generator replaces only the content between these markers; any prose before
 absent, the generator appends a fresh block (and adds a `# Index` heading if the
 file is empty/new). The table lists, per concept: id (linked to its file),
 title, type, status, updated date, and tags. Rows are sorted by `(type, id)`.
+When a concept has no `title`, the table shows the filename stem.
 
 Because the table is generated, hand-edits inside the markers are lost on the
 next reindex. Edit concept files, then reindex.
 
 ## 4. log.md
 
-`log.md` is an **append-only** change history managed by `/okf:log`. It begins
+`log.md` is an **append-only** change history managed by `/cc-okf:log`. It begins
 with a header and an `<!-- OKF:LOG ... -->` marker, then a series of entries:
 
 ```
@@ -118,10 +124,27 @@ The log is the human-readable record of intent that complements git history.
 
 ## 5. Cross-link integrity
 
-The link graph is formed by the `links` frontmatter lists and the `[[wiki-links]]`
-in bodies. A bundle has referential integrity when every `links` target and every
-`[[id]]` resolves to an existing concept id in the same bundle. Dangling links
-are the most common conformance failure and are reported by `/okf:validate`.
+Body links are the single source of truth for the link graph. There is no
+generated `links:` frontmatter field; body links are machine-readable directly
+via the extractor.
+
+Two link forms are recognized:
+
+- **`[[other-id]]`** — wiki-link (primary, preferred form).
+- **`[text](target)`** — markdown link (accepted for interchange compatibility).
+  Resolution in the flat model: strip a leading `/` or `./`, strip a `concepts/`
+  prefix, strip a trailing `.md`, ignore `#fragment` or `?query`. A target with
+  `..`, an external host, or a residual `/` does not resolve (flat model has no
+  subdirectories) and is treated as a dangling link.
+
+A dangling link (either form) is a **WARN** — tolerated for the "reference now,
+create later" authoring pattern. Run `/cc-okf:validate` to see the advisory list.
+
+### Known limitations
+
+**Code fences are not parsed.** The link extractors match `[[id]]` and
+`[text](target)` even inside fenced code blocks. Avoid `[[…]]` inside code
+samples or escape it.
 
 ## 6. Versioning
 
@@ -129,3 +152,15 @@ This is OKF v0.1. Future versions MAY add fields or types; tools SHOULD ignore
 unknown frontmatter fields rather than failing on them, so bundles remain
 forward-compatible. Conformance rules and severities are listed in
 `conformance.md`.
+
+### v0.2.1 enforcement notes
+
+Under v0.2.1 tooling:
+
+- Only `id` and `type` are required (C2 relaxed).
+- `type` and `status` are free-form (C5/C6 removed).
+- Dangling body links are WARN not ERROR (X1 relaxed).
+- There is no generated `links:` field; `/cc-okf:reindex` strips any existing
+  `links:` from v0.2 bundles on first run.
+- Markdown links `[text](target.md)` are recognized in the link graph alongside
+  `[[wiki]]` links.

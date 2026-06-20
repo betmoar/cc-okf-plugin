@@ -1,6 +1,6 @@
 # OKF Conformance Rules
 
-These are the rules enforced by `/okf:validate` (`scripts/validate.py`). Each
+These are the rules enforced by `/cc-okf:validate` (`scripts/validate.py`). Each
 rule has a severity:
 
 - **ERROR** — a violation; the bundle is non-conformant and `validate.py` exits
@@ -24,25 +24,29 @@ treats files under `.okf/` and the `index.md`/`log.md` files as non-concepts.
 | # | Severity | Rule |
 | - | -------- | ---- |
 | C1 | ERROR | The file has a YAML frontmatter block. |
-| C2 | ERROR | Required fields present and non-empty: `id`, `title`, `type`, `created`, `updated`. |
+| C2 | ERROR | Required fields present and non-empty: `id`, `type`. (`title`, `created`, `updated` are recommended but not required.) |
 | C3 | ERROR | `id` equals the filename stem (`concepts/<id>.md`). |
 | C4 | ERROR | `id` is unique within the bundle. |
-| C5 | ERROR | `type` ∈ {`concept`, `decision`, `reference`, `glossary`}. |
-| C6 | ERROR | `status`, if present, ∈ {`draft`, `review`, `stable`, `deprecated`}. |
-| C7 | ERROR | `created` and `updated` are valid ISO dates (`YYYY-MM-DD`). |
-| C8 | ERROR | `updated` is not earlier than `created`. |
+| C7 | ERROR | `created` and `updated`, when present, are valid ISO dates (`YYYY-MM-DD`). |
+| C8 | ERROR | `updated`, when present, is not earlier than `created`. |
 | C9 | WARN  | Each `sources` entry has a `title`; any `url` starts with `http(s)://`. |
+
+`type` and `status` are **free-form strings** — any value is accepted. The
+conventional values (`concept`, `decision`, `reference`, `glossary` for type;
+`draft`, `review`, `stable`, `deprecated` for status) are documented in
+`spec.md` and used for ordering and filtering, but the validator does not
+enforce them. This lets producers use domain-specific types without ceremony.
 
 ## Cross-bundle integrity
 
 | # | Severity | Rule |
 | - | -------- | ---- |
-| X1 | ERROR | Every `links` target resolves to an existing concept id. |
-| X2 | WARN  | Every `[[wiki-link]]` in a body resolves to an existing concept id. |
+| X1 | WARN | A body link (`[[wiki-link]]` or `[text](md-link)`) does not resolve to an existing concept id. |
 
-`[[wiki-links]]` are a WARN (not ERROR) because prose may intentionally reference
-ideas that are not yet captured as concepts; `links` frontmatter is the
-load-bearing graph and is therefore stricter.
+Body links are the single source of truth for the link graph. Dangling links
+are tolerated (WARN only) to support the "reference now, create later" authoring
+pattern and incremental agent writes. There is no generated `links:` field;
+`/cc-okf:reindex` strips any leftover `links:` from v0.2 bundles.
 
 ## Index freshness (advisory)
 
@@ -51,8 +55,8 @@ load-bearing graph and is therefore stricter.
 | I1 | WARN | `index.md` lists every existing concept (none missing). |
 | I2 | WARN | `index.md` lists no ids that no longer exist (none stale). |
 
-`/okf:reindex` is the source of truth for `index.md`. After adding, renaming, or
-removing concepts, run `/okf:reindex`, then re-run `/okf:validate` — I1/I2 should
+`/cc-okf:reindex` is the source of truth for `index.md`. After adding, renaming, or
+removing concepts, run `/cc-okf:reindex`, then re-run `/cc-okf:validate` — I1/I2 should
 clear.
 
 ## Interpreting results
